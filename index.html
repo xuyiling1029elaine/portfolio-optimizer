@@ -371,7 +371,7 @@ footer a:hover { color: var(--gold); }
   <div class="slabel">Search stocks</div>
 
   <div class="api-note">
-    <strong>Live data powered by <a href="https://finnhub.io" target="_blank" style="color:var(--gold)">Finnhub</a>.</strong> Enter any ticker (e.g. AAPL, SHOP, TSM) or search by company name. Press <strong>Enter</strong> to add any custom ticker.
+    <strong>Live data powered by Yahoo Finance.</strong> Enter any ticker (e.g. AAPL, SHOP, TSM, RY.TO) or search by company name. Press <strong>Enter</strong> to add any custom ticker. Canadian and international stocks supported.
   </div>
 
   <div class="search-row">
@@ -633,39 +633,27 @@ function setErr(msg) {
   el.textContent = msg;
 }
 
-// ── Data — Finnhub API ───────────────────────────────────────────────────────
-const FINNHUB_KEY = 'd8iedo1r01qm63bbnfhgd8iedo1r01qm63bbnfi0';
+// ── Data — Vercel backend ────────────────────────────────────────────────────
+const API_URL = "https://portfolio-api-yiling.vercel.app/api/prices";
 
-function toFinnhubSymbol(t) {
-  // Convert TSX tickers like RY.TO -> RY (Finnhub uses exchange suffix differently)
-  if (t.endsWith('.TO')) return t.replace('.TO', '') + ':TSX';
-  return t;
 async function fetchPrices(tickers) {
   const results = {};
-  const now = Math.floor(Date.now() / 1000);
-  const from = now - 2 * 365 * 24 * 3600;
-
-  await Promise.all(tickers.map(async t => {
-    try {
-      const sym = toFinnhubSymbol(t);
-      const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(sym)}&resolution=D&from=${from}&to=${now}&token=${FINNHUB_KEY}`;
-
-      const r = await fetch(url);
-      const d = await r.json();
-
-      console.log(t, sym, d);
-
-      if (d.s === "ok" && Array.isArray(d.c) && d.c.length > 50) {
-        results[t] = d.c;
+  try {
+    const url = `${API_URL}?tickers=${tickers.join(",")}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    for (const t of tickers) {
+      if (data[t] && data[t].length > 50) {
+        results[t] = data[t].map(row => row.close);
       } else {
         results[t] = null;
       }
-    } catch (e) {
-      console.error(t, e);
-      results[t] = null;
     }
-  }));
-
+  } catch (error) {
+    console.error("API error:", error);
+    tickers.forEach(t => results[t] = null);
+  }
   return results;
 }
 
@@ -714,7 +702,7 @@ async function runOptimization() {
   setErr(''); document.getElementById('results').style.display='none';
   document.getElementById('runBtn').disabled=true;
 
-  setStatus('Fetching live data from Finnhub…');
+  setStatus('Fetching live price data…');
   let priceData;
   try { priceData=await fetchPrices(tickers); }
   catch(e){ setErr('Network error. Please try again.'); setStatus(''); document.getElementById('runBtn').disabled=false; return; }
