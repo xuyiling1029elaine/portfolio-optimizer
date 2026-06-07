@@ -640,26 +640,32 @@ function toFinnhubSymbol(t) {
   // Convert TSX tickers like RY.TO -> RY (Finnhub uses exchange suffix differently)
   if (t.endsWith('.TO')) return t.replace('.TO', '') + ':TSX';
   return t;
-}
-
 async function fetchPrices(tickers) {
   const results = {};
   const now = Math.floor(Date.now() / 1000);
-  const from = now - 2 * 365 * 24 * 3600; // 2 years ago
+  const from = now - 2 * 365 * 24 * 3600;
 
   await Promise.all(tickers.map(async t => {
     try {
       const sym = toFinnhubSymbol(t);
       const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(sym)}&resolution=D&from=${from}&to=${now}&token=${FINNHUB_KEY}`;
+
       const r = await fetch(url);
       const d = await r.json();
-      if (d.s === 'ok' && d.c && d.c.length > 50) {
-        results[t] = d.c; // closing prices array
+
+      console.log(t, sym, d);
+
+      if (d.s === "ok" && Array.isArray(d.c) && d.c.length > 50) {
+        results[t] = d.c;
       } else {
         results[t] = null;
       }
-    } catch(e) { results[t] = null; }
+    } catch (e) {
+      console.error(t, e);
+      results[t] = null;
+    }
   }));
+
   return results;
 }
 
