@@ -3,186 +3,387 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Markowitz Portfolio Optimizer — Yiling Xu</title>
+<title>Portfolio Optimizer — Yiling Xu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 :root {
-  --bg: #ffffff; --bg2: #f5f5f3; --bg3: #efefec;
-  --text: #1a1a18; --text2: #5f5e5a; --text3: #888780;
-  --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
-  --blue: #185FA5; --blue-light: #E6F1FB; --blue-dark: #0C447C;
-  --green: #0F6E56; --amber: #854F0B; --red: #A32D2D;
-  --radius: 8px; --radius-lg: 12px;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
-    --text: #f0efe8; --text2: #b4b2a9; --text3: #888780;
-    --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
-    --blue: #5fa8e8; --blue-light: #0c2a45; --blue-dark: #a8d4f7;
-    --green: #5DCAA5; --amber: #EF9F27; --red: #F09595;
-  }
-}
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  background: var(--bg3); color: var(--text);
-  min-height: 100vh; padding: 2rem 1rem; font-size: 15px; line-height: 1.6;
-}
-.container { max-width: 900px; margin: 0 auto; }
-header { margin-bottom: 2rem; }
-header h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
-header p { font-size: 14px; color: var(--text2); }
-header .byline { font-size: 12px; color: var(--text3); margin-top: 6px; }
-header .byline a { color: var(--blue); text-decoration: none; }
-.card {
-  background: var(--bg); border: 0.5px solid var(--border);
-  border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem;
-}
-.section-label {
-  font-size: 11px; font-weight: 500; text-transform: uppercase;
-  letter-spacing: .05em; color: var(--text3); margin-bottom: 10px;
+  --ink: #0d0d0b;
+  --ink2: #3d3d38;
+  --ink3: #7a7a72;
+  --paper: #f7f6f1;
+  --paper2: #eeede6;
+  --paper3: #e4e3da;
+  --gold: #b8960c;
+  --gold-light: #f5edd6;
+  --green: #1a6b4a;
+  --green-light: #d6ede4;
+  --red: #8b2020;
+  --red-light: #f5dada;
+  --blue: #1a3a6b;
+  --blue-light: #d6e2f0;
+  --border: rgba(13,13,11,0.1);
+  --border2: rgba(13,13,11,0.2);
+  --radius: 6px;
+  --radius-lg: 12px;
+  --shadow: 0 1px 3px rgba(13,13,11,0.08), 0 4px 16px rgba(13,13,11,0.06);
+  --shadow-lg: 0 4px 6px rgba(13,13,11,0.06), 0 12px 40px rgba(13,13,11,0.1);
 }
 
-/* Search */
-.search-row { display: flex; gap: 8px; margin-bottom: 12px; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ── Grid lines background ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(13,13,11,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(13,13,11,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none; z-index: 0;
+}
+
+.page { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+
+/* ── Header ── */
+header { margin-bottom: 3rem; display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end; }
+.header-left {}
+.eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink3); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.eyebrow::before {
+  content: ''; display: inline-block; width: 20px; height: 1px; background: var(--gold);
+}
+h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.1; color: var(--ink);
+  margin-bottom: 10px;
+}
+h1 em { font-style: italic; color: var(--gold); }
+.header-desc { font-size: 14px; color: var(--ink2); max-width: 520px; line-height: 1.7; }
+.header-right { text-align: right; }
+.byline-links { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+.byline-links a {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; color: var(--ink3); text-decoration: none;
+  letter-spacing: .04em; transition: color .15s;
+}
+.byline-links a:hover { color: var(--gold); }
+
+/* ── Cards ── */
+.card {
+  background: #fff;
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem 2rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+/* ── Section labels ── */
+.slabel {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink3); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.slabel::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+
+/* ── Search ── */
+.search-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .search-wrap { position: relative; flex: 1; }
 .search-wrap input {
-  width: 100%; border: 0.5px solid var(--border2); border-radius: var(--radius);
-  padding: 8px 12px; font-size: 13px; background: var(--bg); color: var(--text);
-  font-family: inherit; outline: none; transition: border-color .12s;
+  width: 100%;
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 10px 14px 10px 38px;
+  font-size: 13px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
 }
-.search-wrap input:focus { border-color: var(--blue); }
-.search-wrap input::placeholder { color: var(--text3); }
+.search-wrap input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(184,150,12,0.12); }
+.search-wrap input::placeholder { color: var(--ink3); }
+.search-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--ink3); pointer-events: none; font-size: 14px;
+}
 .dropdown {
-  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-  background: var(--bg); border: 0.5px solid var(--border2);
-  border-radius: var(--radius); z-index: 100; max-height: 240px;
-  overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+  background: #fff;
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-lg);
+  z-index: 200;
+  max-height: 260px; overflow-y: auto;
+  box-shadow: var(--shadow-lg);
 }
 .dropdown-item {
-  padding: 8px 12px; cursor: pointer; font-size: 13px;
-  display: flex; align-items: center; gap: 10px; transition: background .08s;
+  padding: 9px 14px; cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; gap: 10px;
+  transition: background .08s; border-bottom: 0.5px solid var(--border);
 }
-.dropdown-item:hover { background: var(--bg2); }
-.dropdown-item .dd-ticker { font-weight: 500; color: var(--blue); min-width: 56px; }
-.dropdown-item .dd-name { color: var(--text2); font-size: 12px; }
-.dropdown-item .dd-sector { color: var(--text3); font-size: 11px; margin-left: auto; }
-.dropdown-empty { padding: 10px 12px; font-size: 13px; color: var(--text3); }
+.dropdown-item:last-child { border-bottom: none; }
+.dropdown-item:hover { background: var(--paper); }
+.dd-ticker {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px; font-weight: 500; color: var(--blue);
+  min-width: 64px; background: var(--blue-light);
+  padding: 2px 6px; border-radius: 4px;
+}
+.dd-name { color: var(--ink2); flex: 1; }
+.dd-sector {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: .06em; color: var(--ink3);
+  text-transform: uppercase;
+}
+.dropdown-empty { padding: 12px 14px; font-size: 13px; color: var(--ink3); font-style: italic; }
 
-/* Selected chips */
-.chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; min-height: 32px; }
+/* ── Presets ── */
+.presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+.preset-btn {
+  border: 0.5px solid var(--border2);
+  border-radius: 20px;
+  padding: 5px 13px;
+  font-size: 11px;
+  cursor: pointer;
+  background: var(--paper2);
+  color: var(--ink2);
+  font-family: 'DM Sans', sans-serif;
+  transition: all .12s; letter-spacing: .01em;
+}
+.preset-btn:hover { background: var(--gold-light); border-color: var(--gold); color: var(--ink); }
+
+/* ── Chips ── */
+.chips-wrap {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 20px; min-height: 36px;
+}
 .chip {
   display: flex; align-items: center; gap: 6px;
-  background: var(--blue-light); border: 0.5px solid var(--blue);
-  border-radius: 20px; padding: 4px 10px 4px 12px; font-size: 12px;
-  color: var(--blue-dark); font-weight: 500;
+  background: var(--blue-light);
+  border: 0.5px solid rgba(26,58,107,0.25);
+  border-radius: 4px;
+  padding: 4px 6px 4px 10px;
+  font-size: 12px; color: var(--blue);
+  font-family: 'DM Mono', monospace;
+  font-weight: 500; letter-spacing: .02em;
+  animation: chipIn .15s ease;
 }
-.chip button {
-  border: none; background: none; cursor: pointer; color: var(--blue);
-  padding: 0; font-size: 14px; line-height: 1; font-family: inherit;
-  display: flex; align-items: center;
+@keyframes chipIn { from { opacity:0; transform:scale(.9); } to { opacity:1; transform:scale(1); } }
+.chip-remove {
+  border: none; background: none; cursor: pointer;
+  color: rgba(26,58,107,0.5); padding: 0; font-size: 15px;
+  line-height: 1; display: flex; align-items: center;
+  font-family: inherit; transition: color .1s;
 }
-.chip button:hover { color: var(--red); }
-.chips-empty { font-size: 12px; color: var(--text3); padding: 6px 0; }
+.chip-remove:hover { color: var(--red); }
+.chips-empty { font-size: 13px; color: var(--ink3); font-style: italic; padding: 6px 0; }
 
-/* Preset pills */
-.presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-.preset-btn {
-  border: 0.5px solid var(--border2); border-radius: 20px;
-  padding: 4px 12px; font-size: 12px; cursor: pointer;
-  background: var(--bg); color: var(--text2); font-family: inherit;
-  transition: all .1s;
+/* ── Controls ── */
+.controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn-run {
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  border-radius: var(--radius);
+  padding: 10px 24px;
+  font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all .12s; letter-spacing: .02em;
+  position: relative; overflow: hidden;
 }
-.preset-btn:hover { background: var(--bg2); color: var(--text); }
+.btn-run::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent);
+}
+.btn-run:hover { background: var(--gold); color: #fff; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(184,150,12,0.3); }
+.btn-run:disabled { opacity: .35; cursor: not-allowed; transform: none; box-shadow: none; background: var(--ink); }
+.btn-secondary {
+  background: transparent; color: var(--ink2);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 10px 18px; font-size: 13px;
+  cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: all .12s;
+}
+.btn-secondary:hover { background: var(--paper2); }
+.sel-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; color: var(--ink3); margin-left: auto;
+}
 
-/* Controls */
-.controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-button.primary {
-  border: 0.5px solid var(--blue); border-radius: var(--radius);
-  padding: 8px 20px; font-size: 13px; font-weight: 500;
-  cursor: pointer; background: var(--blue); color: #fff;
-  transition: all .12s; font-family: inherit;
+/* ── Status ── */
+.status {
+  display: none; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--ink2); padding: 10px 0;
+  font-style: italic;
 }
-button.primary:hover { opacity: .88; }
-button.primary:disabled { opacity: .35; cursor: not-allowed; }
-button.secondary {
-  border: 0.5px solid var(--border2); border-radius: var(--radius);
-  padding: 8px 16px; font-size: 13px; font-weight: 500;
-  cursor: pointer; background: var(--bg); color: var(--text);
-  transition: all .12s; font-family: inherit;
-}
-button.secondary:hover { background: var(--bg2); }
-.sel-count { font-size: 12px; color: var(--text3); margin-left: auto; }
-
-/* Status */
-.status { font-size: 13px; color: var(--text2); padding: 8px 0; display: flex; align-items: center; gap: 8px; }
 .spinner {
-  width: 14px; height: 14px; border: 2px solid var(--border2);
-  border-top-color: var(--blue); border-radius: 50%;
-  animation: spin .7s linear infinite; flex-shrink: 0;
+  width: 16px; height: 16px;
+  border: 1.5px solid var(--border2); border-top-color: var(--gold);
+  border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.err { font-size: 13px; color: var(--red); padding: 8px 0; }
-
-/* Metrics */
-.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 10px; margin-bottom: 1.25rem; }
-.metric { background: var(--bg2); border-radius: var(--radius); padding: 12px 14px; }
-.metric .label { font-size: 11px; color: var(--text3); margin-bottom: 5px; }
-.metric .value { font-size: 22px; font-weight: 500; }
-.metric .value.good { color: var(--green); }
-.metric .value.warn { color: var(--amber); }
-.metric .value.bad { color: var(--red); }
-
-/* Chart */
-.chart-wrap { position: relative; width: 100%; height: 300px; margin-bottom: 1.25rem; }
-.legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; font-size: 12px; color: var(--text2); }
-.legend span { display: flex; align-items: center; gap: 5px; }
-.legend .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.legend .line-seg { width: 18px; height: 2px; border-radius: 1px; flex-shrink: 0; }
-
-/* Table */
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th {
-  font-weight: 500; text-align: left; padding: 6px 8px;
-  border-bottom: 0.5px solid var(--border); color: var(--text3);
-  font-size: 11px; text-transform: uppercase; letter-spacing: .03em;
+.err {
+  display: none;
+  font-size: 13px; color: var(--red);
+  padding: 10px 14px; margin-top: 10px;
+  background: var(--red-light);
+  border-radius: var(--radius);
+  border: 0.5px solid rgba(139,32,32,0.2);
 }
-td { padding: 8px 8px; border-bottom: 0.5px solid var(--border); color: var(--text); vertical-align: middle; }
+
+/* ── Metrics ── */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+.metric {
+  background: #fff; padding: 1.25rem 1.5rem;
+}
+.metric .mlabel {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink3); margin-bottom: 8px;
+}
+.metric .mvalue {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px; line-height: 1; color: var(--ink);
+}
+.metric .mvalue.good { color: var(--green); }
+.metric .mvalue.warn { color: var(--gold); }
+.metric .mvalue.bad { color: var(--red); }
+.metric .msub { font-size: 11px; color: var(--ink3); margin-top: 4px; }
+@media (max-width: 600px) { .metrics { grid-template-columns: repeat(2,1fr); } }
+
+/* ── Chart ── */
+.chart-wrap { position: relative; width: 100%; height: 320px; margin-bottom: 1.5rem; }
+.legend { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 14px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink2); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.legend-line { width: 20px; height: 2px; border-radius: 1px; }
+
+/* ── Table ── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead tr { border-bottom: 1px solid var(--border2); }
+th {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink3); padding: 0 12px 10px; text-align: left; font-weight: 400;
+}
+td {
+  padding: 12px 12px; border-bottom: 0.5px solid var(--border);
+  color: var(--ink); vertical-align: middle;
+}
 tr:last-child td { border-bottom: none; }
-.bar-cell { display: flex; align-items: center; gap: 8px; }
-.bar { height: 5px; border-radius: 3px; background: var(--blue); flex-shrink: 0; }
-a { color: var(--blue); text-decoration: none; }
-a:hover { text-decoration: underline; }
-.disclaimer { font-size: 11px; color: var(--text3); margin-top: 1rem; padding-top: 1rem; border-top: 0.5px solid var(--border); }
-.tag { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: var(--bg2); color: var(--text3); }
+tr:hover td { background: var(--paper); }
+.ticker-cell {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px; font-weight: 500; color: var(--blue);
+  background: var(--blue-light); padding: 3px 7px; border-radius: 4px;
+  display: inline-block;
+}
+.sector-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--ink3); background: var(--paper2);
+  padding: 2px 6px; border-radius: 3px;
+}
+.bar-wrap { display: flex; align-items: center; gap: 8px; }
+.weight-bar { height: 4px; border-radius: 2px; background: var(--gold); flex-shrink: 0; }
+.weight-num { font-family: 'DM Mono', monospace; font-size: 12px; min-width: 40px; }
+.link-cell { display: flex; gap: 8px; }
+.data-link {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  color: var(--ink3); text-decoration: none; letter-spacing: .04em;
+  border: 0.5px solid var(--border2); border-radius: 4px; padding: 3px 7px;
+  transition: all .1s;
+}
+.data-link:hover { border-color: var(--gold); color: var(--gold); }
+.disclaimer {
+  font-size: 11px; color: var(--ink3); margin-top: 1.5rem;
+  padding-top: 1rem; border-top: 0.5px solid var(--border);
+  font-style: italic;
+}
+
+/* ── Footer ── */
+footer {
+  margin-top: 3rem; text-align: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; color: var(--ink3); letter-spacing: .06em;
+}
+footer a { color: var(--ink3); text-decoration: none; }
+footer a:hover { color: var(--gold); }
+
+/* ── API note ── */
+.api-note {
+  background: var(--gold-light);
+  border: 0.5px solid rgba(184,150,12,0.3);
+  border-radius: var(--radius);
+  padding: 10px 14px; font-size: 12px; color: var(--ink2);
+  margin-bottom: 16px; line-height: 1.6;
+}
+.api-note strong { color: var(--ink); }
 </style>
 </head>
 <body>
-<div class="container">
+<div class="page">
 
 <header>
-  <h1>Markowitz portfolio optimizer</h1>
-  <p>Search any stock ticker, build your portfolio, and find the minimum-risk allocation on the efficient frontier.</p>
-  <p class="byline">
-    Built by <a href="https://www.linkedin.com/in/ualbertayilingxu" target="_blank">Yiling Xu</a> ·
-    MMA, University of Alberta ·
-    Data from <a href="https://finance.yahoo.com" target="_blank">Yahoo Finance</a> ·
-    <a href="https://github.com/ualbertayilingxu/portfolio-optimizer" target="_blank">View on GitHub</a>
-  </p>
+  <div class="header-left">
+    <div class="eyebrow">Markowitz mean-variance model</div>
+    <h1>Portfolio<br><em>Optimizer</em></h1>
+    <p class="header-desc">Search any stock, build a portfolio, and find the minimum-risk allocation on the efficient frontier — powered by live market data.</p>
+  </div>
+  <div class="header-right">
+    <div class="byline-links">
+      <a href="https://www.linkedin.com/in/ualbertayilingxu" target="_blank">↗ Yiling Xu · MMA, UAlberta</a>
+      <a href="https://github.com/xuyiling1029elaine/portfolio-optimizer" target="_blank">↗ View source on GitHub</a>
+      <a href="https://finance.yahoo.com" target="_blank">↗ Data · Yahoo Finance</a>
+    </div>
+  </div>
 </header>
 
 <div class="card">
-  <div class="section-label">Search stocks — type any ticker or company name</div>
-  <div class="search-row">
-    <div class="search-wrap">
-      <input type="text" id="searchInput" placeholder="e.g. AAPL, Tesla, SHOP, TSM…" autocomplete="off" spellcheck="false">
-      <div class="dropdown" id="dropdown" style="display:none"></div>
-    </div>
-    <button class="secondary" onclick="clearSearch()">Clear search</button>
+  <div class="slabel">Search stocks</div>
+
+  <div class="api-note">
+    <strong>Note:</strong> This app fetches live data via a public proxy. Enter any ticker symbol (e.g. AAPL, SHOP, TSM, RY.TO) or search by company name. Press <strong>Enter</strong> to add any custom ticker not in the list.
   </div>
 
-  <div class="section-label">Quick presets</div>
+  <div class="search-row">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="searchInput" placeholder="Search ticker or company… e.g. AAPL, Tesla, SHOP, RY.TO" autocomplete="off" spellcheck="false">
+      <div class="dropdown" id="dropdown" style="display:none"></div>
+    </div>
+    <button class="btn-secondary" onclick="clearSearch()">Clear</button>
+  </div>
+
+  <div class="slabel">Quick presets</div>
   <div class="presets">
     <button class="preset-btn" onclick="loadPreset('sp500')">S&amp;P 500 giants</button>
     <button class="preset-btn" onclick="loadPreset('tech')">Big tech</button>
@@ -193,49 +394,59 @@ a:hover { text-decoration: underline; }
     <button class="preset-btn" onclick="loadPreset('global')">Global giants</button>
   </div>
 
-  <div class="section-label">Selected stocks (<span id="selCount">0</span> · min 4, max 15)</div>
+  <div class="slabel">Selected stocks</div>
   <div class="chips-wrap" id="chipsWrap">
-    <span class="chips-empty">No stocks selected yet. Search above or pick a preset.</span>
+    <span class="chips-empty">No stocks selected — search above or pick a preset.</span>
   </div>
 
   <div class="controls">
-    <button class="primary" id="runBtn" onclick="runOptimization()" disabled>Run optimization</button>
-    <button class="secondary" onclick="clearAll()">Clear all</button>
+    <button class="btn-run" id="runBtn" onclick="runOptimization()" disabled>Run optimization</button>
+    <button class="btn-secondary" onclick="clearAll()">Clear all</button>
+    <span class="sel-count" id="selCount">0 / 15 selected</span>
   </div>
-  <div id="statusEl" class="status" style="display:none"><div class="spinner"></div><span id="statusText"></span></div>
-  <div id="errEl" class="err" style="display:none"></div>
+  <div class="status" id="statusEl"><div class="spinner"></div><span id="statusText"></span></div>
+  <div class="err" id="errEl"></div>
 </div>
 
 <div id="results" style="display:none">
   <div class="card">
-    <div class="section-label">Minimum-risk portfolio metrics</div>
+    <div class="slabel">Minimum-risk portfolio</div>
     <div class="metrics" id="metricsEl"></div>
-    <div class="section-label">Efficient frontier</div>
+
+    <div class="slabel">Efficient frontier</div>
     <div class="legend">
-      <span><span class="line-seg" style="background:#185FA5"></span>Efficient frontier</span>
-      <span><span class="dot" style="background:#0F6E56"></span>Min-risk portfolio</span>
-      <span><span class="dot" style="background:#BA7517"></span>Individual stocks</span>
+      <div class="legend-item"><div class="legend-line" style="background:#1a3a6b"></div>Efficient frontier</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a6b4a"></div>Min-risk portfolio ★</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#b8960c"></div>Individual stocks</div>
     </div>
     <div class="chart-wrap">
-      <canvas id="frontierChart" role="img" aria-label="Efficient frontier chart: annual volatility vs annual return"></canvas>
+      <canvas id="frontierChart" aria-label="Efficient frontier: volatility vs return"></canvas>
     </div>
   </div>
+
   <div class="card">
-    <div class="section-label">Optimal weights</div>
-    <table>
-      <thead><tr><th>Ticker</th><th>Company</th><th>Sector</th><th>Weight</th><th>Exp. daily ret.</th><th>Links</th></tr></thead>
-      <tbody id="weightsBody"></tbody>
-    </table>
-    <p class="disclaimer">For educational purposes only. Not financial advice. Past returns do not guarantee future performance.</p>
+    <div class="slabel">Optimal weights</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Ticker</th><th>Company</th><th>Sector</th>
+          <th>Weight</th><th>Daily return</th><th>Links</th>
+        </tr></thead>
+        <tbody id="weightsBody"></tbody>
+      </table>
+    </div>
+    <p class="disclaimer">For educational purposes only. Not financial advice. Historical returns do not predict future performance. Data sourced from Yahoo Finance via public API.</p>
   </div>
 </div>
+
+<footer>
+  <p>Built by <a href="https://www.linkedin.com/in/ualbertayilingxu" target="_blank">Yiling Xu</a> · MMA, University of Alberta · 2026</p>
+</footer>
 
 </div>
 
 <script>
-// ─── Large stock universe ───────────────────────────────────────────────────
 const STOCKS = [
-  // US Mega-cap
   {t:"AAPL",n:"Apple",s:"Technology"},{t:"MSFT",n:"Microsoft",s:"Technology"},
   {t:"GOOGL",n:"Alphabet",s:"Technology"},{t:"AMZN",n:"Amazon",s:"Consumer"},
   {t:"NVDA",n:"Nvidia",s:"Technology"},{t:"META",n:"Meta Platforms",s:"Technology"},
@@ -246,88 +457,73 @@ const STOCKS = [
   {t:"COST",n:"Costco",s:"Consumer"},{t:"MA",n:"Mastercard",s:"Financials"},
   {t:"WMT",n:"Walmart",s:"Consumer"},{t:"PG",n:"Procter & Gamble",s:"Consumer"},
   {t:"HD",n:"Home Depot",s:"Consumer"},{t:"JNJ",n:"Johnson & Johnson",s:"Healthcare"},
-  // Tech
   {t:"ORCL",n:"Oracle",s:"Technology"},{t:"CRM",n:"Salesforce",s:"Technology"},
   {t:"AMD",n:"Advanced Micro Devices",s:"Technology"},{t:"INTC",n:"Intel",s:"Technology"},
   {t:"QCOM",n:"Qualcomm",s:"Technology"},{t:"TXN",n:"Texas Instruments",s:"Technology"},
-  {t:"AMAT",n:"Applied Materials",s:"Technology"},{t:"MU",n:"Micron Technology",s:"Technology"},
   {t:"NOW",n:"ServiceNow",s:"Technology"},{t:"INTU",n:"Intuit",s:"Technology"},
   {t:"ADBE",n:"Adobe",s:"Technology"},{t:"PANW",n:"Palo Alto Networks",s:"Technology"},
   {t:"SNOW",n:"Snowflake",s:"Technology"},{t:"PLTR",n:"Palantir",s:"Technology"},
   {t:"NET",n:"Cloudflare",s:"Technology"},{t:"DDOG",n:"Datadog",s:"Technology"},
-  {t:"ZS",n:"Zscaler",s:"Technology"},{t:"CRWD",n:"CrowdStrike",s:"Technology"},
-  {t:"UBER",n:"Uber",s:"Technology"},{t:"LYFT",n:"Lyft",s:"Technology"},
+  {t:"CRWD",n:"CrowdStrike",s:"Technology"},{t:"UBER",n:"Uber",s:"Technology"},
   {t:"ABNB",n:"Airbnb",s:"Technology"},{t:"SHOP",n:"Shopify",s:"Technology"},
   {t:"SQ",n:"Block (Square)",s:"Technology"},{t:"PYPL",n:"PayPal",s:"Technology"},
   {t:"NFLX",n:"Netflix",s:"Media"},{t:"DIS",n:"Disney",s:"Media"},
   {t:"SPOT",n:"Spotify",s:"Media"},{t:"RBLX",n:"Roblox",s:"Media"},
-  // Financials
   {t:"BAC",n:"Bank of America",s:"Financials"},{t:"WFC",n:"Wells Fargo",s:"Financials"},
   {t:"GS",n:"Goldman Sachs",s:"Financials"},{t:"MS",n:"Morgan Stanley",s:"Financials"},
   {t:"C",n:"Citigroup",s:"Financials"},{t:"AXP",n:"American Express",s:"Financials"},
   {t:"BLK",n:"BlackRock",s:"Financials"},{t:"SCHW",n:"Charles Schwab",s:"Financials"},
   {t:"COF",n:"Capital One",s:"Financials"},{t:"USB",n:"U.S. Bancorp",s:"Financials"},
-  // Healthcare
   {t:"PFE",n:"Pfizer",s:"Healthcare"},{t:"ABBV",n:"AbbVie",s:"Healthcare"},
   {t:"MRK",n:"Merck",s:"Healthcare"},{t:"TMO",n:"Thermo Fisher",s:"Healthcare"},
-  {t:"ABT",n:"Abbott Laboratories",s:"Healthcare"},{t:"DHR",n:"Danaher",s:"Healthcare"},
-  {t:"BMY",n:"Bristol-Myers Squibb",s:"Healthcare"},{t:"GILD",n:"Gilead Sciences",s:"Healthcare"},
+  {t:"ABT",n:"Abbott Laboratories",s:"Healthcare"},{t:"GILD",n:"Gilead Sciences",s:"Healthcare"},
   {t:"ISRG",n:"Intuitive Surgical",s:"Healthcare"},{t:"REGN",n:"Regeneron",s:"Healthcare"},
   {t:"MRNA",n:"Moderna",s:"Healthcare"},{t:"BIIB",n:"Biogen",s:"Healthcare"},
-  // Energy
   {t:"CVX",n:"Chevron",s:"Energy"},{t:"COP",n:"ConocoPhillips",s:"Energy"},
   {t:"SLB",n:"SLB (Schlumberger)",s:"Energy"},{t:"EOG",n:"EOG Resources",s:"Energy"},
-  {t:"PSX",n:"Phillips 66",s:"Energy"},{t:"MPC",n:"Marathon Petroleum",s:"Energy"},
   {t:"OXY",n:"Occidental Petroleum",s:"Energy"},{t:"HAL",n:"Halliburton",s:"Energy"},
-  // Consumer
   {t:"MCD",n:"McDonald's",s:"Consumer"},{t:"SBUX",n:"Starbucks",s:"Consumer"},
   {t:"NKE",n:"Nike",s:"Consumer"},{t:"LOW",n:"Lowe's",s:"Consumer"},
   {t:"TGT",n:"Target",s:"Consumer"},{t:"CMG",n:"Chipotle",s:"Consumer"},
-  {t:"LULU",n:"Lululemon",s:"Consumer"},{t:"AMGN",n:"Amgen",s:"Healthcare"},
   {t:"KO",n:"Coca-Cola",s:"Consumer"},{t:"PEP",n:"PepsiCo",s:"Consumer"},
-  {t:"PM",n:"Philip Morris",s:"Consumer"},{t:"MO",n:"Altria Group",s:"Consumer"},
-  // Industrial / Other
   {t:"CAT",n:"Caterpillar",s:"Industrial"},{t:"DE",n:"Deere & Company",s:"Industrial"},
   {t:"BA",n:"Boeing",s:"Industrial"},{t:"RTX",n:"RTX Corp",s:"Industrial"},
   {t:"LMT",n:"Lockheed Martin",s:"Industrial"},{t:"GE",n:"GE Aerospace",s:"Industrial"},
   {t:"UPS",n:"UPS",s:"Industrial"},{t:"FDX",n:"FedEx",s:"Industrial"},
   {t:"NEE",n:"NextEra Energy",s:"Utilities"},{t:"DUK",n:"Duke Energy",s:"Utilities"},
   {t:"AMT",n:"American Tower",s:"Real Estate"},{t:"PLD",n:"Prologis",s:"Real Estate"},
-  {t:"SPG",n:"Simon Property",s:"Real Estate"},{t:"O",n:"Realty Income",s:"Real Estate"},
-  // Canadian (TSX via Yahoo)
-  {t:"SHOP",n:"Shopify",s:"Technology"},{t:"CNR.TO",n:"Canadian National Railway",s:"Industrial"},
+  {t:"O",n:"Realty Income",s:"Real Estate"},
+  {t:"CNR.TO",n:"Canadian National Railway",s:"Industrial"},
   {t:"RY.TO",n:"Royal Bank of Canada",s:"Financials"},{t:"TD.TO",n:"TD Bank",s:"Financials"},
   {t:"ENB.TO",n:"Enbridge",s:"Energy"},{t:"CP.TO",n:"Canadian Pacific Kansas City",s:"Industrial"},
   {t:"BMO.TO",n:"Bank of Montreal",s:"Financials"},{t:"BNS.TO",n:"Scotiabank",s:"Financials"},
   {t:"MFC.TO",n:"Manulife Financial",s:"Financials"},{t:"SU.TO",n:"Suncor Energy",s:"Energy"},
   {t:"CNQ.TO",n:"Canadian Natural Resources",s:"Energy"},{t:"BCE.TO",n:"BCE Inc.",s:"Telecom"},
   {t:"T.TO",n:"TELUS",s:"Telecom"},{t:"CM.TO",n:"CIBC",s:"Financials"},
-  {t:"ATD.TO",n:"Alimentation Couche-Tard",s:"Consumer"},{t:"WN.TO",n:"George Weston",s:"Consumer"},
-  // Global
+  {t:"ATD.TO",n:"Alimentation Couche-Tard",s:"Consumer"},
   {t:"TSM",n:"Taiwan Semiconductor",s:"Technology"},{t:"ASML",n:"ASML Holding",s:"Technology"},
   {t:"SAP",n:"SAP SE",s:"Technology"},{t:"NVO",n:"Novo Nordisk",s:"Healthcare"},
   {t:"SONY",n:"Sony Group",s:"Technology"},{t:"TM",n:"Toyota Motor",s:"Automotive"},
-  {t:"BABA",n:"Alibaba Group",s:"Technology"},{t:"TCEHY",n:"Tencent",s:"Technology"},
-  {t:"HSBC",n:"HSBC Holdings",s:"Financials"},{t:"BP",n:"BP plc",s:"Energy"},
-  {t:"SHEL",n:"Shell plc",s:"Energy"},{t:"RIO",n:"Rio Tinto",s:"Materials"},
-  {t:"BHP",n:"BHP Group",s:"Materials"},{t:"LVMUY",n:"LVMH",s:"Consumer"},
+  {t:"BABA",n:"Alibaba Group",s:"Technology"},{t:"HSBC",n:"HSBC Holdings",s:"Financials"},
+  {t:"BP",n:"BP plc",s:"Energy"},{t:"SHEL",n:"Shell plc",s:"Energy"},
+  {t:"RIO",n:"Rio Tinto",s:"Materials"},{t:"BHP",n:"BHP Group",s:"Materials"},
   {t:"NSRGY",n:"Nestlé",s:"Consumer"},{t:"RHHBY",n:"Roche Holding",s:"Healthcare"},
 ];
 
 const PRESETS = {
-  sp500:     ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","BRK-B","LLY","JPM","V","UNH","XOM"],
-  tech:      ["AAPL","MSFT","GOOGL","NVDA","META","AVGO","ORCL","CRM","ADBE","AMD","SHOP","CRWD"],
-  finance:   ["JPM","BAC","WFC","GS","MS","V","MA","AXP","BLK","COF","SCHW","C"],
-  healthcare:["UNH","LLY","JNJ","PFE","ABBV","MRK","TMO","ABT","ISRG","GILD","MRNA","REGN"],
-  energy:    ["XOM","CVX","COP","SLB","EOG","OXY","HAL","ENB.TO","SU.TO","CNQ.TO"],
-  canada:    ["RY.TO","TD.TO","ENB.TO","CP.TO","BMO.TO","BNS.TO","SU.TO","CNQ.TO","ATD.TO","CNR.TO"],
-  global:    ["TSM","ASML","NVO","SAP","SONY","TM","NSRGY","RHHBY","LVMUY","RIO","HSBC","SHEL"],
+  sp500:      ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","BRK-B","LLY","JPM","V","UNH","XOM"],
+  tech:       ["AAPL","MSFT","NVDA","META","AVGO","ORCL","ADBE","CRWD","SHOP","PLTR","NET","DDOG"],
+  finance:    ["JPM","BAC","WFC","GS","MS","V","MA","AXP","BLK","COF","SCHW","C"],
+  healthcare: ["UNH","LLY","JNJ","PFE","ABBV","MRK","TMO","ISRG","GILD","MRNA","REGN","ABT"],
+  energy:     ["XOM","CVX","COP","SLB","EOG","OXY","HAL","ENB.TO","SU.TO","CNQ.TO"],
+  canada:     ["RY.TO","TD.TO","ENB.TO","CP.TO","BMO.TO","BNS.TO","SU.TO","CNQ.TO","ATD.TO","CNR.TO"],
+  global:     ["TSM","ASML","NVO","SAP","SONY","TM","NSRGY","RHHBY","RIO","HSBC","SHEL","BHP"],
 };
 
 let selected = new Set();
 let chartInst = null;
 
-// ─── Search ─────────────────────────────────────────────────────────────────
+// ── Search ──────────────────────────────────────────────────────────────────
 const searchInput = document.getElementById('searchInput');
 const dropdown = document.getElementById('dropdown');
 
@@ -336,9 +532,9 @@ searchInput.addEventListener('input', () => {
   if (!q) { dropdown.style.display = 'none'; return; }
   const matches = STOCKS.filter(s =>
     s.t.toLowerCase().includes(q) || s.n.toLowerCase().includes(q)
-  ).slice(0, 12);
+  ).slice(0, 10);
   if (!matches.length) {
-    dropdown.innerHTML = `<div class="dropdown-empty">No matches in universe — try typing the exact ticker (e.g. AAPL)</div>`;
+    dropdown.innerHTML = `<div class="dropdown-empty">No matches — press Enter to add "${searchInput.value.trim().toUpperCase()}" directly</div>`;
   } else {
     dropdown.innerHTML = matches.map(s => `
       <div class="dropdown-item" onclick="addStock('${s.t}')">
@@ -355,21 +551,23 @@ document.addEventListener('click', e => {
 });
 
 searchInput.addEventListener('keydown', e => {
-  if (e.key === 'Escape') dropdown.style.display = 'none';
+  if (e.key === 'Escape') { dropdown.style.display = 'none'; return; }
   if (e.key === 'Enter') {
     const q = searchInput.value.trim().toUpperCase();
-    if (q) { addStock(q); }
+    if (q) addStock(q);
   }
 });
 
 function clearSearch() {
   searchInput.value = '';
   dropdown.style.display = 'none';
+  searchInput.focus();
 }
 
 function addStock(ticker) {
+  ticker = ticker.toUpperCase();
   if (selected.size >= 15) { setErr('Maximum 15 stocks. Remove one first.'); return; }
-  selected.add(ticker.toUpperCase());
+  selected.add(ticker);
   clearSearch();
   renderChips();
   setErr('');
@@ -383,15 +581,15 @@ function removeStock(ticker) {
 function renderChips() {
   const wrap = document.getElementById('chipsWrap');
   if (!selected.size) {
-    wrap.innerHTML = '<span class="chips-empty">No stocks selected yet. Search above or pick a preset.</span>';
+    wrap.innerHTML = '<span class="chips-empty">No stocks selected — search above or pick a preset.</span>';
   } else {
-    wrap.innerHTML = [...selected].map(t => {
-      const info = STOCKS.find(s => s.t === t);
-      const label = info ? `${t} · ${info.n}` : t;
-      return `<div class="chip"><span>${label}</span><button onclick="removeStock('${t}')" title="Remove">×</button></div>`;
-    }).join('');
+    wrap.innerHTML = [...selected].map(t => `
+      <div class="chip">
+        <span>${t}</span>
+        <button class="chip-remove" onclick="removeStock('${t}')" title="Remove">×</button>
+      </div>`).join('');
   }
-  document.getElementById('selCount').textContent = selected.size;
+  document.getElementById('selCount').textContent = `${selected.size} / 15 selected`;
   document.getElementById('runBtn').disabled = selected.size < 4;
 }
 
@@ -408,7 +606,6 @@ function clearAll() {
   setErr('');
 }
 
-// ─── Status / error ──────────────────────────────────────────────────────────
 function setStatus(msg) {
   const el = document.getElementById('statusEl');
   el.style.display = msg ? 'flex' : 'none';
@@ -420,198 +617,204 @@ function setErr(msg) {
   el.textContent = msg;
 }
 
-// ─── Data fetch ──────────────────────────────────────────────────────────────
+// ── Data — using allorigins proxy to bypass CORS ─────────────────────────────
 async function fetchPrices(tickers) {
   const results = {};
   await Promise.all(tickers.map(async t => {
     try {
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?interval=1d&range=2y`;
-      const r = await fetch(url);
+      // Use allorigins CORS proxy to fetch Yahoo Finance data
+      const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?interval=1d&range=2y`;
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
+      const r = await fetch(proxyUrl);
       const d = await r.json();
-      const closes = d.result[0].indicators.quote[0].close;
-      results[t] = closes.filter(v => v != null);
+      const closes = d?.result?.[0]?.indicators?.quote?.[0]?.close;
+      if (closes && closes.length > 50) {
+        results[t] = closes.filter(v => v != null);
+      } else {
+        results[t] = null;
+      }
     } catch(e) { results[t] = null; }
   }));
   return results;
 }
 
-// ─── Math ────────────────────────────────────────────────────────────────────
+// ── Math ─────────────────────────────────────────────────────────────────────
 function calcReturns(prices) {
   const ret = [];
-  for (let i = 1; i < prices.length; i++) ret.push((prices[i] - prices[i-1]) / prices[i-1]);
+  for (let i = 1; i < prices.length; i++) ret.push((prices[i]-prices[i-1])/prices[i-1]);
   return ret;
 }
-function mean(arr) { return arr.reduce((a,b) => a+b, 0) / arr.length; }
-function cov(a, b) {
-  const ma = mean(a), mb = mean(b), n = Math.min(a.length, b.length);
-  let s = 0;
-  for (let i = 0; i < n; i++) s += (a[i]-ma)*(b[i]-mb);
-  return s / (n-1);
+function mean(arr) { return arr.reduce((a,b)=>a+b,0)/arr.length; }
+function cov(a,b) {
+  const ma=mean(a), mb=mean(b), n=Math.min(a.length,b.length);
+  let s=0; for(let i=0;i<n;i++) s+=(a[i]-ma)*(b[i]-mb);
+  return s/(n-1);
 }
 function minimize(tickers, retMap, covMat, targetReturn=null) {
-  const n = tickers.length;
-  let w = Array(n).fill(1/n);
-  for (let it = 0; it < 8000; it++) {
-    let grad = Array(n).fill(0);
-    for (let i = 0; i < n; i++)
-      for (let j = 0; j < n; j++)
-        grad[i] += 2 * covMat[i][j] * w[j];
-    let sumW = w.reduce((a,b) => a+b, 0);
-    let lagW = grad.map(g => g - sumW);
-    for (let i = 0; i < n; i++) w[i] = Math.max(0, w[i] - 0.001 * lagW[i]);
-    let s = w.reduce((a,b) => a+b, 0);
-    if (s > 0) w = w.map(x => x/s);
-    if (targetReturn !== null) {
-      let er = tickers.reduce((a,t,i) => a + retMap[t]*w[i], 0);
-      if (er < targetReturn) {
-        let best = 0;
-        tickers.forEach((t,i) => { if (retMap[t] > retMap[tickers[best]]) best = i; });
-        w[best] += 0.001;
-        let ss = w.reduce((a,b) => a+b, 0);
-        w = w.map(x => x/ss);
+  const n=tickers.length; let w=Array(n).fill(1/n);
+  for(let it=0;it<8000;it++){
+    let grad=Array(n).fill(0);
+    for(let i=0;i<n;i++) for(let j=0;j<n;j++) grad[i]+=2*covMat[i][j]*w[j];
+    let sumW=w.reduce((a,b)=>a+b,0);
+    let lagW=grad.map(g=>g-sumW);
+    for(let i=0;i<n;i++) w[i]=Math.max(0,w[i]-0.001*lagW[i]);
+    let s=w.reduce((a,b)=>a+b,0); if(s>0) w=w.map(x=>x/s);
+    if(targetReturn!==null){
+      let er=tickers.reduce((a,t,i)=>a+retMap[t]*w[i],0);
+      if(er<targetReturn){
+        let best=0; tickers.forEach((t,i)=>{if(retMap[t]>retMap[tickers[best]])best=i;});
+        w[best]+=0.001; let ss=w.reduce((a,b)=>a+b,0); w=w.map(x=>x/ss);
       }
     }
   }
   return w;
 }
-function portfolioStats(w, tickers, retMap, covMat) {
-  const ret = tickers.reduce((a,t,i) => a + retMap[t]*w[i], 0);
-  let variance = 0;
-  for (let i = 0; i < tickers.length; i++)
-    for (let j = 0; j < tickers.length; j++)
-      variance += covMat[i][j] * w[i] * w[j];
-  return { ret, vol: Math.sqrt(Math.max(0, variance)) };
+function portfolioStats(w,tickers,retMap,covMat){
+  const ret=tickers.reduce((a,t,i)=>a+retMap[t]*w[i],0);
+  let v=0; for(let i=0;i<tickers.length;i++) for(let j=0;j<tickers.length;j++) v+=covMat[i][j]*w[i]*w[j];
+  return {ret, vol:Math.sqrt(Math.max(0,v))};
 }
-const toAR = r => ((1+r)**252 - 1) * 100;
-const toAV = v => v * Math.sqrt(252) * 100;
+const toAR=r=>((1+r)**252-1)*100;
+const toAV=v=>v*Math.sqrt(252)*100;
 
-// ─── Main run ────────────────────────────────────────────────────────────────
+// ── Run ───────────────────────────────────────────────────────────────────────
 async function runOptimization() {
-  const tickers = [...selected];
-  setErr('');
-  document.getElementById('results').style.display = 'none';
-  document.getElementById('runBtn').disabled = true;
+  const tickers=[...selected];
+  setErr(''); document.getElementById('results').style.display='none';
+  document.getElementById('runBtn').disabled=true;
 
-  setStatus('Fetching live price data from Yahoo Finance…');
+  setStatus('Fetching live price data via proxy…');
   let priceData;
-  try { priceData = await fetchPrices(tickers); }
-  catch(e) {
-    setErr('Network error. Please try again.');
-    setStatus(''); document.getElementById('runBtn').disabled = false; return;
-  }
+  try { priceData=await fetchPrices(tickers); }
+  catch(e){ setErr('Network error. Please try again.'); setStatus(''); document.getElementById('runBtn').disabled=false; return; }
 
-  const failed = tickers.filter(t => !priceData[t] || priceData[t].length < 50);
-  if (failed.length) {
-    setErr(`Could not load sufficient data for: ${failed.join(', ')}. Remove them or try again.`);
-    setStatus(''); document.getElementById('runBtn').disabled = false; return;
+  const failed=tickers.filter(t=>!priceData[t]);
+  if(failed.length){
+    setErr(`Could not load data for: ${failed.join(', ')}. These tickers may be invalid or unavailable. Remove them and try again.`);
+    setStatus(''); document.getElementById('runBtn').disabled=false; return;
   }
 
   setStatus('Computing covariance matrix…');
-  await new Promise(r => setTimeout(r, 40));
-  const minLen = Math.min(...tickers.map(t => priceData[t].length));
-  const retSeries = {};
-  tickers.forEach(t => { retSeries[t] = calcReturns(priceData[t].slice(-minLen)); });
-  const retMap = {};
-  tickers.forEach(t => { retMap[t] = mean(retSeries[t]); });
-  const covMat = tickers.map(ti => tickers.map(tj => cov(retSeries[ti], retSeries[tj])));
+  await new Promise(r=>setTimeout(r,40));
+  const minLen=Math.min(...tickers.map(t=>priceData[t].length));
+  const retSeries={}; tickers.forEach(t=>{retSeries[t]=calcReturns(priceData[t].slice(-minLen));});
+  const retMap={}; tickers.forEach(t=>{retMap[t]=mean(retSeries[t]);});
+  const covMat=tickers.map(ti=>tickers.map(tj=>cov(retSeries[ti],retSeries[tj])));
 
   setStatus('Running Markowitz optimization…');
-  await new Promise(r => setTimeout(r, 40));
-  const minW = minimize(tickers, retMap, covMat);
-  const minStats = portfolioStats(minW, tickers, retMap, covMat);
+  await new Promise(r=>setTimeout(r,40));
+  const minW=minimize(tickers,retMap,covMat);
+  const minStats=portfolioStats(minW,tickers,retMap,covMat);
 
   setStatus('Tracing efficient frontier…');
-  await new Promise(r => setTimeout(r, 40));
-  const maxRet = Math.max(...tickers.map(t => retMap[t]));
-  const targets = Array.from({length:22}, (_,i) => minStats.ret + (maxRet - minStats.ret)*i/21);
-  const frontier = targets.map(p => {
-    const w = minimize(tickers, retMap, covMat, p);
-    return portfolioStats(w, tickers, retMap, covMat);
-  }).filter(pt => isFinite(pt.vol) && isFinite(pt.ret));
+  await new Promise(r=>setTimeout(r,40));
+  const maxRet=Math.max(...tickers.map(t=>retMap[t]));
+  const targets=Array.from({length:22},(_,i)=>minStats.ret+(maxRet-minStats.ret)*i/21);
+  const frontier=targets.map(p=>{
+    const w=minimize(tickers,retMap,covMat,p);
+    return portfolioStats(w,tickers,retMap,covMat);
+  }).filter(pt=>isFinite(pt.vol)&&isFinite(pt.ret));
 
   setStatus('');
-  renderResults(minW, minStats, frontier, tickers, retMap, covMat);
-  document.getElementById('runBtn').disabled = false;
+  renderResults(minW,minStats,frontier,tickers,retMap,covMat);
+  document.getElementById('runBtn').disabled=false;
 }
 
-// ─── Render ──────────────────────────────────────────────────────────────────
-function renderResults(weights, stats, frontier, tickers, retMap, covMat) {
-  const annRet = toAR(stats.ret);
-  const annVol = toAV(stats.vol);
-  const sharpe = (annRet - 2) / annVol;
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderResults(weights,stats,frontier,tickers,retMap,covMat){
+  const annRet=toAR(stats.ret), annVol=toAV(stats.vol), sharpe=(annRet-2)/annVol;
+  document.getElementById('metricsEl').innerHTML=`
+    <div class="metric">
+      <div class="mlabel">Est. annual return</div>
+      <div class="mvalue ${annRet>=0?'good':'bad'}">${annRet.toFixed(1)}%</div>
+      <div class="msub">2-year historical</div>
+    </div>
+    <div class="metric">
+      <div class="mlabel">Annual volatility</div>
+      <div class="mvalue">${annVol.toFixed(1)}%</div>
+      <div class="msub">Annualised std dev</div>
+    </div>
+    <div class="metric">
+      <div class="mlabel">Sharpe ratio</div>
+      <div class="mvalue ${sharpe>=1?'good':sharpe<0?'bad':'warn'}">${sharpe.toFixed(2)}</div>
+      <div class="msub">Risk-free rate 2%</div>
+    </div>
+    <div class="metric">
+      <div class="mlabel">Active positions</div>
+      <div class="mvalue">${weights.filter(w=>w>0.001).length}<span style="font-size:16px;color:var(--ink3)"> / ${tickers.length}</span></div>
+      <div class="msub">Stocks with weight > 0</div>
+    </div>`;
 
-  document.getElementById('metricsEl').innerHTML = `
-    <div class="metric"><div class="label">Est. annual return</div><div class="value ${annRet>=0?'good':'bad'}">${annRet.toFixed(2)}%</div></div>
-    <div class="metric"><div class="label">Annual volatility</div><div class="value">${annVol.toFixed(2)}%</div></div>
-    <div class="metric"><div class="label">Sharpe ratio</div><div class="value ${sharpe>=1?'good':sharpe<0?'bad':'warn'}">${sharpe.toFixed(2)}</div></div>
-    <div class="metric"><div class="label">Active positions</div><div class="value">${weights.filter(w=>w>0.001).length} of ${tickers.length}</div></div>
-  `;
-
-  const fPts = frontier.map(p => ({ x: +toAV(p.vol).toFixed(3), y: +toAR(p.ret).toFixed(3) }));
-  const indivPts = tickers.map(t => ({
-    x: +toAV(Math.sqrt(covMat[tickers.indexOf(t)][tickers.indexOf(t)])).toFixed(3),
-    y: +toAR(retMap[t]).toFixed(3),
-    label: t,
+  const fPts=frontier.map(p=>({x:+toAV(p.vol).toFixed(3),y:+toAR(p.ret).toFixed(3)}));
+  const indivPts=tickers.map(t=>({
+    x:+toAV(Math.sqrt(covMat[tickers.indexOf(t)][tickers.indexOf(t)])).toFixed(3),
+    y:+toAR(retMap[t]).toFixed(3), label:t
   }));
 
-  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
-  const axisColor = isDark ? '#888780' : '#5f5e5a';
-
-  if (chartInst) chartInst.destroy();
-  chartInst = new Chart(document.getElementById('frontierChart'), {
-    type: 'scatter',
-    data: { datasets: [
-      { label:'Efficient frontier', data:fPts, showLine:true, borderColor:'#185FA5',
-        backgroundColor:'rgba(24,95,165,0.07)', pointRadius:2, tension:0.3, fill:false, borderWidth:2 },
-      { label:'Min-risk portfolio', data:[{x:+annVol.toFixed(3),y:+annRet.toFixed(3)}],
-        pointRadius:10, pointBackgroundColor:'#0F6E56', pointStyle:'star', borderColor:'#0F6E56', borderWidth:1 },
-      { label:'Individual stocks', data:indivPts,
-        pointRadius:5, pointBackgroundColor:'rgba(186,117,23,0.75)', borderColor:'#BA7517', borderWidth:1 },
+  if(chartInst) chartInst.destroy();
+  chartInst=new Chart(document.getElementById('frontierChart'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Efficient frontier',data:fPts,showLine:true,borderColor:'#1a3a6b',
+       backgroundColor:'rgba(26,58,107,0.06)',pointRadius:2,tension:0.35,fill:false,borderWidth:2.5},
+      {label:'Min-risk portfolio',data:[{x:+annVol.toFixed(3),y:+annRet.toFixed(3)}],
+       pointRadius:12,pointBackgroundColor:'#1a6b4a',pointStyle:'star',borderColor:'#1a6b4a',borderWidth:1},
+      {label:'Individual stocks',data:indivPts,
+       pointRadius:5,pointBackgroundColor:'rgba(184,150,12,0.7)',borderColor:'#b8960c',borderWidth:1},
     ]},
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins: {
-        legend:{ display:false },
-        tooltip:{ callbacks:{ label: ctx => {
-          const pt = ctx.raw;
-          return `${pt.label||ctx.dataset.label}: Vol ${ctx.parsed.x.toFixed(1)}%, Ret ${ctx.parsed.y.toFixed(1)}%`;
-        }}}
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#fff',borderColor:'rgba(13,13,11,0.15)',borderWidth:1,
+          titleColor:'#0d0d0b',bodyColor:'#3d3d38',titleFont:{family:'DM Mono'},bodyFont:{family:'DM Sans'},
+          callbacks:{label:ctx=>{
+            const pt=ctx.raw;
+            return `${pt.label||ctx.dataset.label}: Vol ${ctx.parsed.x.toFixed(1)}%, Ret ${ctx.parsed.y.toFixed(1)}%`;
+          }}
+        }
       },
-      scales: {
-        x:{ title:{display:true,text:'Annual volatility (%)',color:axisColor,font:{size:12}}, grid:{color:gridColor}, ticks:{color:axisColor} },
-        y:{ title:{display:true,text:'Annual return (%)',color:axisColor,font:{size:12}}, grid:{color:gridColor}, ticks:{color:axisColor} },
+      scales:{
+        x:{title:{display:true,text:'Annual volatility (%)',color:'#7a7a72',font:{family:'DM Mono',size:11}},
+           grid:{color:'rgba(13,13,11,0.06)'},ticks:{color:'#7a7a72',font:{family:'DM Mono',size:10}}},
+        y:{title:{display:true,text:'Annual return (%)',color:'#7a7a72',font:{family:'DM Mono',size:11}},
+           grid:{color:'rgba(13,13,11,0.06)'},ticks:{color:'#7a7a72',font:{family:'DM Mono',size:10}}},
       }
     }
   });
 
-  const sorted = tickers.map((t,i) => ({t, w:weights[i]}))
-    .filter(x => x.w > 0.001).sort((a,b) => b.w - a.w);
-  const maxW = Math.max(...sorted.map(x => x.w));
-
-  document.getElementById('weightsBody').innerHTML = sorted.map(({t, w}) => {
-    const info = STOCKS.find(s => s.t === t) || {n: t, s: '—'};
-    const ret = retMap[t];
-    const retColor = ret >= 0 ? 'var(--green)' : 'var(--red)';
-    const barW = Math.round((w / maxW) * 80);
-    const yhUrl = `https://finance.yahoo.com/quote/${encodeURIComponent(t)}`;
-    const mwUrl = `https://www.marketwatch.com/investing/stock/${t.toLowerCase().replace('.to','')}`;
+  const sorted=tickers.map((t,i)=>({t,w:weights[i]})).filter(x=>x.w>0.001).sort((a,b)=>b.w-a.w);
+  const maxW=Math.max(...sorted.map(x=>x.w));
+  document.getElementById('weightsBody').innerHTML=sorted.map(({t,w})=>{
+    const info=STOCKS.find(s=>s.t===t)||{n:t,s:'—'};
+    const ret=retMap[t], retColor=ret>=0?'var(--green)':'var(--red)';
+    const barW=Math.round((w/maxW)*90);
+    const yhUrl=`https://finance.yahoo.com/quote/${encodeURIComponent(t)}`;
+    const mwUrl=`https://www.marketwatch.com/investing/stock/${t.toLowerCase().replace('.to','')}`;
+    const bbUrl=`https://www.bloomberg.com/quote/${t.replace('.TO',':CN')}:US`;
     return `<tr>
-      <td><strong>${t}</strong></td>
+      <td><span class="ticker-cell">${t}</span></td>
       <td>${info.n}</td>
-      <td><span class="tag">${info.s}</span></td>
-      <td><div class="bar-cell"><span>${(w*100).toFixed(1)}%</span><span class="bar" style="width:${barW}px"></span></div></td>
-      <td style="color:${retColor}">${ret>=0?'+':''}${(ret*100).toFixed(3)}%</td>
-      <td style="white-space:nowrap">
-        <a href="${yhUrl}" target="_blank" style="font-size:11px">Yahoo ↗</a>
-        &nbsp;
-        <a href="${mwUrl}" target="_blank" style="font-size:11px">MarketWatch ↗</a>
+      <td><span class="sector-tag">${info.s}</span></td>
+      <td>
+        <div class="bar-wrap">
+          <span class="weight-num">${(w*100).toFixed(1)}%</span>
+          <div class="weight-bar" style="width:${barW}px"></div>
+        </div>
+      </td>
+      <td style="color:${retColor};font-family:'DM Mono',monospace;font-size:12px">${ret>=0?'+':''}${(ret*100).toFixed(3)}%</td>
+      <td>
+        <div class="link-cell">
+          <a href="${yhUrl}" target="_blank" class="data-link">Yahoo ↗</a>
+          <a href="${mwUrl}" target="_blank" class="data-link">MW ↗</a>
+        </div>
       </td>
     </tr>`;
   }).join('');
 
-  document.getElementById('results').style.display = 'block';
-  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('results').style.display='block';
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 renderChips();
