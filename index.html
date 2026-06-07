@@ -371,7 +371,7 @@ footer a:hover { color: var(--gold); }
   <div class="slabel">Search stocks</div>
 
   <div class="api-note">
-    <strong>Note:</strong> This app fetches live data via a public proxy. Enter any ticker symbol (e.g. AAPL, SHOP, TSM, RY.TO) or search by company name. Press <strong>Enter</strong> to add any custom ticker not in the list.
+    <strong>Note:</strong> Enter any ticker (e.g. AAPL, SHOP, TSM, RY.TO) or search by company name. Press <strong>Enter</strong> to add a custom ticker. Data loads via multiple fallback proxies — if one fails, another is tried automatically.
   </div>
 
   <div class="search-row">
@@ -617,23 +617,31 @@ function setErr(msg) {
   el.textContent = msg;
 }
 
-// ── Data — using allorigins proxy to bypass CORS ─────────────────────────────
+// ── Data — multi-proxy fallback ───────────────────────────────────────────────
+const PROXIES = [
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+];
+
+async function fetchWithFallback(yahooUrl) {
+  for (const makeProxy of PROXIES) {
+    try {
+      const r = await fetch(makeProxy(yahooUrl), { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) continue;
+      const d = await r.json();
+      const closes = d?.result?.[0]?.indicators?.quote?.[0]?.close;
+      if (closes && closes.filter(v => v != null).length > 50) return closes.filter(v => v != null);
+    } catch(e) { continue; }
+  }
+  return null;
+}
+
 async function fetchPrices(tickers) {
   const results = {};
   await Promise.all(tickers.map(async t => {
-    try {
-      // Use allorigins CORS proxy to fetch Yahoo Finance data
-      const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?interval=1d&range=2y`;
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
-      const r = await fetch(proxyUrl);
-      const d = await r.json();
-      const closes = d?.result?.[0]?.indicators?.quote?.[0]?.close;
-      if (closes && closes.length > 50) {
-        results[t] = closes.filter(v => v != null);
-      } else {
-        results[t] = null;
-      }
-    } catch(e) { results[t] = null; }
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?interval=1d&range=2y`;
+    results[t] = await fetchWithFallback(url);
   }));
   return results;
 }
@@ -683,7 +691,7 @@ async function runOptimization() {
   setErr(''); document.getElementById('results').style.display='none';
   document.getElementById('runBtn').disabled=true;
 
-  setStatus('Fetching live price data via proxy…');
+  setStatus('Fetching live data (trying multiple sources…)');
   let priceData;
   try { priceData=await fetchPrices(tickers); }
   catch(e){ setErr('Network error. Please try again.'); setStatus(''); document.getElementById('runBtn').disabled=false; return; }
