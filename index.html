@@ -371,7 +371,7 @@ footer a:hover { color: var(--gold); }
   <div class="slabel">Search stocks</div>
 
   <div class="api-note">
-    <strong>Note:</strong> Enter any ticker (e.g. AAPL, SHOP, TSM, RY.TO) or search by company name. Press <strong>Enter</strong> to add a custom ticker. Data loads via multiple fallback proxies — if one fails, another is tried automatically.
+    <strong>Live data powered by <a href="https://finnhub.io" target="_blank" style="color:var(--gold)">Finnhub</a>.</strong> Enter any ticker (e.g. AAPL, SHOP, TSM) or search by company name. Press <strong>Enter</strong> to add any custom ticker.
   </div>
 
   <div class="search-row">
@@ -406,6 +406,22 @@ footer a:hover { color: var(--gold); }
   </div>
   <div class="status" id="statusEl"><div class="spinner"></div><span id="statusText"></span></div>
   <div class="err" id="errEl"></div>
+
+  <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:0.5px solid var(--border)">
+    <div class="slabel">Investment amount (optional)</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div style="position:relative;width:220px">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink3);font-family:'DM Mono',monospace;font-size:13px">$</span>
+        <input type="number" id="investAmount" placeholder="e.g. 10000" min="0" step="100"
+          style="width:100%;border:0.5px solid var(--border2);border-radius:var(--radius);padding:10px 12px 10px 26px;font-size:13px;background:var(--paper);color:var(--ink);font-family:'DM Sans',sans-serif;outline:none">
+      </div>
+      <select id="investCurrency" style="border:0.5px solid var(--border2);border-radius:var(--radius);padding:10px 12px;font-size:13px;background:var(--paper);color:var(--ink);font-family:'DM Sans',sans-serif;outline:none">
+        <option value="USD">USD</option>
+        <option value="CAD">CAD</option>
+      </select>
+      <span style="font-size:12px;color:var(--ink3)">Results will show dollar allocation per stock</span>
+    </div>
+  </div>
 </div>
 
 <div id="results" style="display:none">
@@ -430,7 +446,7 @@ footer a:hover { color: var(--gold); }
       <table>
         <thead><tr>
           <th>Ticker</th><th>Company</th><th>Sector</th>
-          <th>Weight</th><th>Daily return</th><th>Links</th>
+          <th>Weight</th><th>Allocation</th><th>Daily return</th><th>Links</th>
         </tr></thead>
         <tbody id="weightsBody"></tbody>
       </table>
@@ -617,31 +633,32 @@ function setErr(msg) {
   el.textContent = msg;
 }
 
-// ── Data — multi-proxy fallback ───────────────────────────────────────────────
-const PROXIES = [
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-];
+// ── Data — Finnhub API ───────────────────────────────────────────────────────
+const FINNHUB_KEY = 'd8iedo1r01qm63bbnfhgd8iedo1r01qm63bbnfi0';
 
-async function fetchWithFallback(yahooUrl) {
-  for (const makeProxy of PROXIES) {
-    try {
-      const r = await fetch(makeProxy(yahooUrl), { signal: AbortSignal.timeout(8000) });
-      if (!r.ok) continue;
-      const d = await r.json();
-      const closes = d?.result?.[0]?.indicators?.quote?.[0]?.close;
-      if (closes && closes.filter(v => v != null).length > 50) return closes.filter(v => v != null);
-    } catch(e) { continue; }
-  }
-  return null;
+function toFinnhubSymbol(t) {
+  // Convert TSX tickers like RY.TO -> RY (Finnhub uses exchange suffix differently)
+  if (t.endsWith('.TO')) return t.replace('.TO', '') + ':TSX';
+  return t;
 }
 
 async function fetchPrices(tickers) {
   const results = {};
+  const now = Math.floor(Date.now() / 1000);
+  const from = now - 2 * 365 * 24 * 3600; // 2 years ago
+
   await Promise.all(tickers.map(async t => {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}?interval=1d&range=2y`;
-    results[t] = await fetchWithFallback(url);
+    try {
+      const sym = toFinnhubSymbol(t);
+      const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(sym)}&resolution=D&from=${from}&to=${now}&token=${FINNHUB_KEY}`;
+      const r = await fetch(url);
+      const d = await r.json();
+      if (d.s === 'ok' && d.c && d.c.length > 50) {
+        results[t] = d.c; // closing prices array
+      } else {
+        results[t] = null;
+      }
+    } catch(e) { results[t] = null; }
   }));
   return results;
 }
@@ -691,7 +708,7 @@ async function runOptimization() {
   setErr(''); document.getElementById('results').style.display='none';
   document.getElementById('runBtn').disabled=true;
 
-  setStatus('Fetching live data (trying multiple sources…)');
+  setStatus('Fetching live data from Finnhub…');
   let priceData;
   try { priceData=await fetchPrices(tickers); }
   catch(e){ setErr('Network error. Please try again.'); setStatus(''); document.getElementById('runBtn').disabled=false; return; }
@@ -794,13 +811,17 @@ function renderResults(weights,stats,frontier,tickers,retMap,covMat){
 
   const sorted=tickers.map((t,i)=>({t,w:weights[i]})).filter(x=>x.w>0.001).sort((a,b)=>b.w-a.w);
   const maxW=Math.max(...sorted.map(x=>x.w));
+  const investRaw = parseFloat(document.getElementById('investAmount').value);
+  const investAmt = isNaN(investRaw) || investRaw <= 0 ? null : investRaw;
+  const currency = document.getElementById('investCurrency').value;
+  const fmtMoney = v => investAmt ? `${currency === 'CAD' ? 'CA$' : '$'}${v.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0})}` : '—';
   document.getElementById('weightsBody').innerHTML=sorted.map(({t,w})=>{
     const info=STOCKS.find(s=>s.t===t)||{n:t,s:'—'};
     const ret=retMap[t], retColor=ret>=0?'var(--green)':'var(--red)';
     const barW=Math.round((w/maxW)*90);
+    const alloc = investAmt ? investAmt * w : null;
     const yhUrl=`https://finance.yahoo.com/quote/${encodeURIComponent(t)}`;
     const mwUrl=`https://www.marketwatch.com/investing/stock/${t.toLowerCase().replace('.to','')}`;
-    const bbUrl=`https://www.bloomberg.com/quote/${t.replace('.TO',':CN')}:US`;
     return `<tr>
       <td><span class="ticker-cell">${t}</span></td>
       <td>${info.n}</td>
@@ -811,6 +832,7 @@ function renderResults(weights,stats,frontier,tickers,retMap,covMat){
           <div class="weight-bar" style="width:${barW}px"></div>
         </div>
       </td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:${alloc?'var(--ink)':'var(--ink3)'}">${fmtMoney(alloc)}</td>
       <td style="color:${retColor};font-family:'DM Mono',monospace;font-size:12px">${ret>=0?'+':''}${(ret*100).toFixed(3)}%</td>
       <td>
         <div class="link-cell">
